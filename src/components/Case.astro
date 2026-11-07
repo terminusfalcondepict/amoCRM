@@ -1,0 +1,48 @@
+---
+import { buildChart } from '../lib/chart.js';
+import { nb } from '../lib/typo.js';
+const { item } = Astro.props;
+const chart = buildChart(item.chart?.points ?? []);
+const color = item.chart?.color === 'purple' ? 'purple' : 'blue';
+const gid = `grad-${item.order}`;
+---
+<article class={`case case--${item.theme === 'slate' ? 'slate' : 'blue'}`}>
+  <header class="case__head">
+    <div>
+      <p class="case__label">{item.metricLabel}</p>
+      <p class="case__value">{item.metricValue}</p>
+    </div>
+    <p class="case__tag">{item.industry}</p>
+  </header>
+  <div class="case__body">
+    <h3 class="case__title">{nb(item.title)}</h3>
+    <div class="case__point">
+      <h4 class="case__point-title">Проблема</h4>
+      <p class="case__text">{nb(item.problem)}</p>
+    </div>
+    <div class="case__point">
+      <h4 class="case__point-title">Решение</h4>
+      <p class="case__text">{nb(item.solution)}</p>
+    </div>
+  </div>
+  <div class={`chart chart--${color}`} role="img" aria-label={`График: ${item.chart?.label ?? ''}`}>
+    <div class="chart__plot">
+      <p class="chart__label">{item.chart?.label}</p>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="currentColor" stop-opacity=".2" />
+            <stop offset="1" stop-color="currentColor" stop-opacity=".04" />
+          </linearGradient>
+        </defs>
+        <path class="chart__area" d={chart.area} fill={`url(#${gid})`} />
+        <path class="chart__line" d={chart.line} pathLength="1" fill="none" stroke="currentColor" vector-effect="non-scaling-stroke" />
+      </svg>
+    </div>
+    {chart.tips.map((t) => (
+      <div class="chart__marker" style={`left:${t.x}%;top:${t.y}%`}>
+        <span class="chart__tip">{t.tip}</span>
+      </div>
+    ))}
+  </div>
+</article>

@@ -1,0 +1,400 @@
+---
+import '@fontsource-variable/manrope';
+import '@fontsource-variable/inter';
+import '@fontsource/montserrat/700.css';
+import '../styles/global.css';
+import Case from '../components/Case.astro';
+import Img from '../components/Img.astro';
+import { nb } from '../lib/typo.js';
+
+const byOrder = (mods) => Object.values(mods).map((m) => m.default).sort((a, b) => a.order - b.order);
+const cases = byOrder(import.meta.glob('../content/cases/*.json', { eager: true }));
+const tariffs = byOrder(import.meta.glob('../content/tariffs/*.json', { eager: true }));
+
+const nav = [
+  ['Главная', '#top'],
+  ['Портфолио', '#cases'],
+  ['Контакты', '#contacts'],
+  ['Услуги', '#services'],
+];
+const benefits = [
+  { t: 'Перестать терять\nлиды и прибыль', d: 'Скорее всего, вы прямо сейчас теряете клиентов из-за проблем', img: 'card1', h: 484 },
+  { t: 'Сделать продажи\nболее системными', d: 'Чтобы круто продавали не только ваши “звезды”, но и новички', img: 'card2', h: 528 },
+  { t: 'Навести порядок\nв процессах', d: 'Все этапы продаж понятны и работают по единому сценарию', img: 'card3', h: 528 },
+  { t: 'Видеть наглядно\nкартину о сделках', d: 'Отчеты и наглядные дашборды помогут видеть узкие места', img: 'card4', h: 528 },
+];
+const auto = ['Сотрудники занимаются клиентами, а не рутиной', 'Устранен человеческий фактор и ошибки', 'Больше продуктивности, меньше хаоса', 'Время сотрудников используется с умом'];
+const integr = ['Все лиды автоматически попадают в CRM', 'Полный цикл работы с клиентом в одном интерфейсе', 'Двусторонняя синхронизация с внешними сервисами', 'Индивидуальные интеграции через API под ваш бизнес'];
+const analytics = ['Визуальные дашборды с ключевыми метриками', 'Данные в реальном времени', 'Понимание, где расти и что исправить', 'Решения на основе цифр, а не интуиции'];
+
+const row1 = [['Процессы', 'fire', 37, 36], ['Автоматизация', 'gear', 40, 41], ['Рост прибыли', 'dollar', 44, 45], ['Сделки', 'fire', 37, 36]];
+const row2 = [['Эффективность', 'bolt', 45, 45], ['Аналитика', 'chart', 35, 35], ['Воронки', 'person', 40, 40], ['Контроль команды', 'bolt', 45, 45]];
+
+// Виджеты: положение картинки в процентах от плитки, по макету.
+const widgetCols = [
+  [
+    { t: 'Авторизация', n: '10 виджетов', v: 'blue', img: 'w-lock', iw: 284, ih: 329, s: 'left:54.3%;top:30.7%;width:34.6%' },
+    { t: 'Мессенджеры', n: '12 виджетов', v: 'light', img: 'w-messengers', iw: 412, ih: 326, s: 'left:47%;top:36.7%;width:47%' },
+  ],
+  [
+    { t: 'Аналитика', n: '12 виджетов', v: 'light', img: 'w-analytics', iw: 371, ih: 347, s: 'left:49.2%;top:27.9%;width:44.1%' },
+    { t: 'Интерфейс', n: '7 виджетов', v: 'dark', img: 'w-cursor', iw: 635, ih: 1024, s: 'left:56.2%;top:45.6%;width:15.6%' },
+  ],
+  [
+    { t: 'Доступы', n: '7 виджетов', v: 'dark', img: 'w-key', iw: 493, ih: 1024, s: 'left:67.5%;top:15.5%;width:19.2%;rotate:30.67deg' },
+    { t: 'SMS', n: '10 виджетов', v: 'blue', img: 'w-sms', iw: 372, ih: 302, s: 'left:50.2%;top:38.6%;width:43.2%' },
+  ],
+];
+
+// Этапы 2–4: черновые тексты, написаны по смыслу макета, ждут проверки заказчиком.
+const steps = [
+  { n: 1, t: 'Проектирование решения', d: 'Разбираемся, как работает ваш бизнес, чтобы CRM помогала продавать, а не мешала',
+    a: 'Проводим интервью с собственником и ключевыми сотрудниками', b: 'Анализируем путь клиента и текущие процессы продаж. Формируем логику воронок и сценариев работы' },
+  { n: 2, t: 'Настройка amoCRM', d: 'Собираем систему под ваши процессы, чтобы менеджерам было удобно работать с первого дня',
+    a: 'Настраиваем воронки, этапы сделок, поля карточек и права доступа сотрудников', b: 'Переносим клиентскую базу и историю сделок из таблиц и других систем без потерь' },
+  { n: 3, t: 'Интеграции и автоматизация', d: 'Соединяем все каналы в одном окне и убираем ручную рутину из работы отдела продаж',
+    a: 'Подключаем сайт, телефонию, мессенджеры и почту, чтобы заявки сразу попадали в CRM', b: 'Настраиваем автоматические задачи, уведомления и переходы сделок между этапами' },
+  { n: 4, t: 'Обучение и запуск', d: 'Обучаем команду и остаемся рядом, пока новая система не станет привычным инструментом',
+    a: 'Проводим обучение для менеджеров и руководителя на примерах из вашей работы', b: 'Запускаем систему, проверяем корректность работы и помогаем с первыми вопросами' },
+];
+const stats = [['540', 'Компаний используют наши продукты'], ['10+', 'Лет на рынке'], ['420', 'Реализованных проектов'], ['16', 'Штатных сотрудников']];
+---
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Внедряем amoCRM в сложные системы</title>
+  <meta name="description" content="Повысим эффективность отдела продаж, в среднем +35% к прибыли через 2 месяца. Внедрение и развитие amoCRM." />
+  <link rel="preload" href="/fonts/Involve-SemiBold.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/Involve-Medium.woff2" as="font" type="font/woff2" crossorigin />
+  <script is:inline>document.documentElement.classList.add('js')</script>
+</head>
+<body id="top">
+
+<button class="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu" data-burger>
+  <span class="burger__lines" aria-hidden="true"><i></i><i></i><i></i></span>
+</button>
+<div class="mmenu" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Меню" data-mobile-menu inert>
+  <nav class="mmenu__nav" aria-label="Мобильное меню">
+    {nav.map(([t, h]) => <a class="mmenu__link" href={h}>{t}</a>)}
+  </nav>
+  <a class="btn mmenu__cta" href="#consultation">Оставить заявку</a>
+</div>
+
+<header class="hero">
+  <div class="container hero__stage">
+    <div class="hero__inner">
+      <nav class="nav" aria-label="Основное меню">
+        {nav.map(([t, h]) => <a class="nav__link" href={h}>{t}</a>)}
+      </nav>
+
+      <div class="hero__content">
+        <p class="hero__badge">
+          <Img class="hero__badge-icon" src="crown" w={26} h={25} eager />
+          <span>Входим в <b>ТОП-10</b> агентств России</span>
+        </p>
+        <h1 class="hero__title">
+          <span class="hero__title-row">Внедряем <Img class="hero__logo" src="logo" w={279} h={54} alt="amoCRM." eager /></span>
+          <span>в сложные системы</span>
+        </h1>
+        <p class="hero__sub">Повысим эффективность отдела продаж,<br /> в среднем <b>+35% к прибыли через 2 месяца</b></p>
+        <a class="btn btn--hero" href="#consultation">Оставить заявку</a>
+      </div>
+
+      <div class="hero__decor" aria-hidden="true">
+        <Img class="float hero__avatars" src="avatars" w={194} h={144} eager />
+        <div class="float float--2 hero__calendar calendar">
+          <div class="calendar__body">
+            <i class="calendar__row" style="top:.46em"></i>
+            <i class="calendar__row" style="top:8.28em"></i>
+            <i class="calendar__row" style="top:16.09em"></i>
+            <b class="calendar__time" style="top:1.5em">11:00</b>
+            <b class="calendar__time" style="top:5.4em">12:00</b>
+            <b class="calendar__time" style="top:9.3em">13:00</b>
+            <b class="calendar__time" style="top:17.1em">14:00</b>
+            <b class="calendar__now">13:30</b>
+            <i class="calendar__line"></i>
+            <div class="calendar__lunch">Обед с Катей</div>
+          </div>
+          <div class="calendar__meet"><strong>Встреча с советом директоров</strong><span>11:00 — 12:00</span></div>
+        </div>
+        <Img class="float float--3 hero__dropdown" src="dropdown" w={240} h={200} eager />
+        <Img class="float float--2 hero__folders" src="folders" w={251} h={142} eager />
+        <Img class="float float--3 hero__pdf" src="pdf" w={72} h={73} eager />
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="benefits">
+    <div class="container">
+      <h2 class="h2 benefits__title reveal"><span class="muted">Безболезненный рост</span><br /> и оптимизация продаж</h2>
+      <div class="benefits__grid">
+        {benefits.map((b, i) => (
+          <article class="benefit lift reveal" style={`--d:${i * 70}ms`}>
+            <div class="benefit__text">
+              <h3 class="benefit__title">{b.t}</h3>
+              <p class="benefit__desc">{nb(b.d)}</p>
+            </div>
+            <Img class="benefit__img" src={b.img} w={670} h={b.h} />
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <div class="dark">
+    <section class="services" id="services">
+      <div class="container">
+        <h2 class="h2 services__title reveal">Комплексное внедрение и&nbsp;развитие&nbsp;amoCRM</h2>
+        <div class="services__grid">
+          <article class="service service--auto reveal">
+            <Img class="service__top" src="service1" w={880} h={543} alt="" />
+            <div class="service__content">
+              <h3 class="service__title">Автоматизация</h3>
+              <ul class="arrows arrows--blue">{auto.map((t) => <li>{nb(t)}</li>)}</ul>
+            </div>
+          </article>
+
+          <div class="folder folder--slate reveal" style="--d:70ms">
+            <article class="service service--integr">
+              <Img class="service__art" src="service2" w={880} h={1220} />
+              <div class="service__content">
+                <h3 class="service__title">Интеграции</h3>
+                <ul class="arrows">{integr.map((t) => <li>{nb(t)}</li>)}</ul>
+              </div>
+            </article>
+          </div>
+
+          <div class="services__stack reveal" style="--d:140ms">
+            <article class="service service--analytics">
+              <Img class="service__chart" src="service3" w={158} h={159} />
+              <div class="service__content">
+                <h3 class="service__title">Аналитика</h3>
+                <ul class="arrows">{analytics.map((t) => <li>{nb(t)}</li>)}</ul>
+              </div>
+            </article>
+            <article class="service service--training">
+              <Img class="service__avatar" src="service-avatar" w={100} h={100} />
+              <h3 class="service__title-sm">Обучение</h3>
+              <p>За одну неделю обучим ваших сотрудников всем тонкостям и возможностям софта. Работать станет приятнее и эффективнее</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cases" id="cases">
+      <div class="container">
+        <h2 class="h2 cases__title reveal">Реальные результаты наших клиентов после внедрения</h2>
+      </div>
+      <div class="cases__track" data-drag tabindex="0" aria-label="Кейсы, прокрутка по горизонтали">
+        {cases.map((c) => <Case item={c} />)}
+      </div>
+    </section>
+  </div>
+
+  <section class="marquee" aria-label="Что мы улучшаем">
+    {[row1, row2].map((row, r) => (
+      <div class={`marquee__row ${r ? 'marquee__row--rev' : ''}`}>
+        {[0, 1].map((copy) => (
+          <div class="marquee__group" aria-hidden={copy ? 'true' : undefined}>
+            {row.map(([t, e, w, h]) => (
+              <>
+                <span class="marquee__word">{t}</span>
+                <Img class="marquee__icon" src={`emoji-${e}`} w={w} h={h} />
+              </>
+            ))}
+          </div>
+        ))}
+      </div>
+    ))}
+  </section>
+
+  <section class="widgets">
+    <div class="container">
+      <h2 class="h2 reveal">Расширить возможности amoCRM</h2>
+      <div class="widgets__grid">
+        <article class="widgets__intro reveal">
+          <h3 class="widgets__intro-title">Мы создали 99&nbsp;виджетов</h3>
+          <p>Для самых разных задач</p>
+          <div class="tg" aria-hidden="true">
+            <i class="tg__back tg__back--2"></i>
+            <i class="tg__back tg__back--1"></i>
+            <div class="tg__card">
+              <img src="/icons/telegram.svg" width="47" height="47" alt="" loading="lazy" />
+              <strong>Telegram</strong>
+              <span>мессенджер</span>
+            </div>
+          </div>
+        </article>
+        {widgetCols.map((col, c) => (
+          <div class={`widgets__col widgets__col--${c + 1}`}>
+            {col.map((w, i) => (
+              <article class={`tile tile--${w.v} lift reveal`} style={`--d:${(c + i) * 60}ms`}>
+                <h3 class="tile__title">{w.t}</h3>
+                <p class="tile__count">{w.n}</p>
+                <Img class="tile__img" src={w.img} w={w.iw} h={w.ih} style={w.s} />
+              </article>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="steps">
+    <div class="container steps__layout">
+      <aside class="steps__card reveal">
+        <div class="steps__card-text">
+          <h2 class="steps__title">Понятные<br /> этапы внедрения amoCRM</h2>
+          <p class="steps__lead">Работаем по плану<br /> с соблюдением сроков</p>
+        </div>
+        <Img class="steps__art" src="steps" w={960} h={914} />
+      </aside>
+      <div class="accordion reveal" data-accordion>
+        {steps.map((s, i) => {
+          const open = i === 0;
+          return (
+            <div class={`step ${open ? 'is-open' : ''}`}>
+              <h3 class="step__heading">
+                <button class="step__toggle" type="button" aria-expanded={open ? 'true' : 'false'} aria-controls={`step-${s.n}`} id={`step-btn-${s.n}`}>
+                  <span class="step__pill">{s.n} этап</span>
+                  <span class="step__name">{s.t}</span>
+                  <img class="step__arrow" src="/icons/arrow-right.svg" width="26" height="18" alt="" />
+                </button>
+              </h3>
+              <div class="step__panel" id={`step-${s.n}`} role="region" aria-labelledby={`step-btn-${s.n}`}>
+                <div class="step__panel-inner">
+                  <p class="step__desc">{nb(s.d)}</p>
+                  <div class="step__cards">
+                    <div class="step__card"><img src="/icons/step-mic.svg" width="22" height="30" alt="" loading="lazy" /><p>{nb(s.a)}</p></div>
+                    <div class="step__card"><img src="/icons/step-search.svg" width="26" height="27" alt="" loading="lazy" /><p>{nb(s.b)}</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+
+  <section class="tariffs dark">
+    <div class="container">
+      <div class="tariffs__head">
+        <div class="reveal">
+          <h2 class="h2">3 формата работы</h2>
+          <p class="tariffs__lead">{nb('Стоимость внедрения amoCRM складывается из факторов, которые определяют объем работ и время, затраченное экспертом')}</p>
+        </div>
+        <aside class="nda reveal">
+          <img class="nda__sign" src="/icons/signature.svg" width="121" height="79" alt="" loading="lazy" />
+          <img class="nda__shield" src="/icons/shield.svg" width="54" height="68" alt="" loading="lazy" />
+          <h3 class="nda__title">Заключаем NDA</h3>
+          <p>Обязательно подписываем соглашение о конфиденциальности для защиты ваших данных</p>
+        </aside>
+      </div>
+      <div class="tariffs__grid">
+        {tariffs.map((t, i) => (
+          <div class={`folder folder--${t.theme} reveal`} style={`--d:${i * 70}ms`}>
+            <article class={`tariff tariff--${t.theme}`}>
+              {t.badge && <span class="tariff__badge">{t.badge}</span>}
+              <header class="tariff__head">
+                <h3 class="tariff__name">{t.name}</h3>
+                <p class="tariff__people">{t.people}
+                  <img src={`/icons/users-${t.theme === 'white' ? 'dark' : 'white'}.svg`} width="27" height="24" alt="человек" loading="lazy" />
+                </p>
+              </header>
+              <ul class={`sparkles ${t.theme === 'white' ? 'sparkles--dark' : ''}`}>{t.items.map((x) => <li>{nb(x)}</li>)}</ul>
+            </article>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="demo">
+    <div class="container">
+      <div class="demo__card reveal">
+        <div class="demo__text">
+          <h2 class="demo__title">Демонстрация возможностей amoCRM под ваш бизнес</h2>
+          <p class="demo__lead">{nb('За 40 минут покажем систему в действии на примерах из вашей отрасли — с понятными результатами и сценариями')}</p>
+          <a class="btn" href="#consultation">Записаться</a>
+        </div>
+        <Img class="demo__art" src="demo" w={755} h={738} />
+      </div>
+
+      <ul class="stats">
+        {stats.map(([n, t], i) => (
+          <li class="stats__item reveal" style={`--d:${i * 70}ms`}><b>{n}</b><span>{nb(t)}</span></li>
+        ))}
+      </ul>
+
+      <div class="about reveal">
+        <h2 class="about__title">Внедряем CRM, которая реально работает!</h2>
+        <p class="about__text">{nb('находим слабые места и превращаем хаос в прозрачную и управляемую систему с amoCRM')}</p>
+      </div>
+      <div class="team" aria-label="Наша команда">
+        {[1, 2, 3, 4, 5, 6, 7].map((n) => <Img class="team__face" src={`team${n}`} w={217} h={217} alt="Сотрудник компании" />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="consult" id="consultation">
+    <div class="container">
+      <div class="consult__card reveal">
+        <Img class="consult__art" src="consult" w={749} h={496} />
+        <div class="consult__body">
+          <h2 class="consult__title">Запишитесь на бесплатную консультацию</h2>
+          <p class="consult__lead">Разберем ваш отдел продаж и предложим решение</p>
+          <form class="form" data-lead-form novalidate>
+            <label class="form__field">
+              <span class="sr-only">Ваше имя</span>
+              <input type="text" name="name" placeholder="Ваше имя" autocomplete="name" required minlength="2" />
+              <small class="form__error" hidden>Укажите имя</small>
+            </label>
+            <label class="form__field">
+              <span class="sr-only">Телефон</span>
+              <input type="tel" name="phone" placeholder="+ 7 800 (555) 35 - 35" autocomplete="tel" inputmode="tel" required />
+              <small class="form__error" hidden>Укажите телефон полностью</small>
+            </label>
+            <div class="form__foot">
+              <button class="btn" type="submit">Записаться</button>
+              <p class="form__note">Нажимая кнопку вы соглашаетесь на обработку ваших <u>персональных данных</u></p>
+            </div>
+            <p class="form__success" role="status" hidden>Спасибо! Мы получили заявку и скоро свяжемся с вами.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer" id="contacts">
+  <div class="container">
+    <div class="footer__card">
+      <Img class="footer__wave" src="footer" w={1400} h={267} />
+      <div class="footer__main">
+        <div>
+          <h2 class="footer__title">Контакты</h2>
+          <p class="footer__contacts">
+            <a href="tel:+74991139339">+7 499 113 93 39</a>
+            <a href="mailto:info@alphacrm.ru">info@alphacrm.ru</a>
+          </p>
+        </div>
+        <div class="footer__docs">
+          <h3>Документы</h3>
+          <span>Политика конфиденциальности</span>
+          <span>Согласие на обработку</span>
+          <span>Оферта</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="../scripts/main.js"></script>
+</body>
+</html>

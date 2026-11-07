@@ -1,0 +1,66 @@
+# Боевой backend подключается при выкладке: укажите repo и способ входа (см. README).
+backend:
+  name: github
+  repo: OWNER/REPO
+  branch: main
+local_backend: true
+locale: ru
+media_folder: public/img/uploads
+public_folder: /img/uploads
+collections:
+  - name: cases
+    label: Кейсы
+    label_singular: Кейс
+    folder: src/content/cases
+    extension: json
+    format: json
+    create: true
+    delete: true
+    slug: "{{slug}}"
+    identifier_field: title
+    summary: "{{order}}. {{title}}"
+    sortable_fields: [order, title]
+    fields:
+      - { name: order, label: "Порядок в слайдере", widget: number, value_type: int, default: 1 }
+      - { name: title, label: "Заголовок", widget: string }
+      - { name: theme, label: "Цвет шапки", widget: select, options: [{label: "Синий", value: blue}, {label: "Графитовый", value: slate}], default: blue }
+      - { name: metricLabel, label: "Показатель: подпись", widget: string }
+      - { name: metricValue, label: "Показатель: значение", widget: string }
+      - { name: industry, label: "Отрасль (плашка)", widget: string }
+      - { name: problem, label: "Проблема", widget: text }
+      - { name: solution, label: "Решение", widget: text }
+      - name: chart
+        label: График
+        widget: object
+        fields:
+          - { name: label, label: "Подпись графика", widget: string }
+          - { name: color, label: "Цвет", widget: select, options: [{label: "Синий", value: blue}, {label: "Фиолетовый", value: purple}], default: blue }
+          - name: points
+            label: Точки кривой
+            label_singular: Точка
+            widget: list
+            summary: "x={{fields.x}} y={{fields.y}} {{fields.tip}}"
+            hint: "Минимум 2 точки, по порядку слева направо"
+            fields:
+              - { name: x, label: "X: положение слева направо, 0–100", widget: number, value_type: float, min: 0, max: 100 }
+              - { name: y, label: "Y: высота, 0 — верх, 100 — низ", widget: number, value_type: float, min: 0, max: 100 }
+              - { name: tip, label: "Подпись над точкой (необязательно)", widget: string, required: false }
+  - name: tariffs
+    label: Форматы работы
+    label_singular: Формат
+    folder: src/content/tariffs
+    extension: json
+    format: json
+    create: true
+    delete: true
+    slug: "{{slug}}"
+    identifier_field: name
+    summary: "{{order}}. {{name}}"
+    sortable_fields: [order, name]
+    fields:
+      - { name: order, label: "Порядок", widget: number, value_type: int, default: 1 }
+      - { name: name, label: "Название", widget: string }
+      - { name: people, label: "Количество людей", widget: string, hint: "Например: до 5, до 100, от 100" }
+      - { name: theme, label: "Цвет карточки", widget: select, options: [{label: "Тёмный", value: graphite}, {label: "Графитовый", value: slate}, {label: "Белый", value: white}], default: graphite }
+      - { name: badge, label: "Плашка (необязательно)", widget: string, required: false, default: "" }
+      - { name: items, label: "Что входит", label_singular: "Пункт", widget: list, field: { name: item, label: "Пункт", widget: string } }

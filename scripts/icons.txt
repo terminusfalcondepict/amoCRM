@@ -1,0 +1,14 @@
+telegram 9655354b-22c6-40f2-9b49-4ef5c24aed9b
+arrow-right ab1eaef2-c5ad-4476-ad5e-92add089f6ae
+step-mic aba96546-39f2-4aae-9fcf-c285f8944d42
+step-search c84652b8-c7f8-4da0-8857-915ff99a0bbc
+sparkle-dark 7ed55ae6-08ea-421e-97a9-aed1a014a7ce
+sparkle-white 365e6895-3ce2-40b3-b084-8da27e8c638c
+sparkle-dark2 38d7a452-07ec-4fd9-a7d7-79c4706da208
+signature 4535df66-53ce-4797-99bd-84e99fe9de1e
+shield 1a1118a9-9756-4af3-8c7a-104e0b8d4a8a
+users-white 99cdfe7c-695e-4df7-810c-601c49ce767f
+users-dark 237d4fae-6431-4599-b7ec-896e6329e2ae
+arrow-list-blue 11184062-3369-4609-b612-de8be6b6041e
+arrow-list-white 4b3c217a-c4d4-4186-a4c6-4af16577f2ec
+folder-bg 573f97bc-0f88-4e72-9dfb-780140ad64f9

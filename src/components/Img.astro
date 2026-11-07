@@ -1,0 +1,5 @@
+---
+// Декоративное изображение с размерами, чтобы не было сдвига вёрстки.
+const { src, w, h, alt = '', class: cls, eager = false, ...rest } = Astro.props;
+---
+<img class={cls} src={`/img/${src}.webp`} width={w} height={h} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" {...rest} />
