@@ -1,0 +1,69 @@
+---
+import '@fontsource-variable/manrope';
+import '../../styles/admin.css';
+import {
+  SESSION_COOKIE, configProblem, passwordMatches, createSessionToken, isValidSessionToken,
+  sessionCookieOptions, lockedMinutesLeft, registerFail, clearFails,
+} from '../../lib/admin/auth.js';
+
+export const prerender = false;
+
+const problem = configProblem();
+let error = '';
+
+if (!problem && isValidSessionToken(Astro.cookies.get(SESSION_COOKIE)?.value)) {
+  return Astro.redirect('/admin', 303);
+}
+
+if (!problem && Astro.request.method === 'POST') {
+  const ip = Astro.clientAddress || 'unknown';
+  const locked = lockedMinutesLeft(ip);
+  if (locked) {
+    error = `Слишком много неудачных попыток. Попробуйте снова через ${locked} мин.`;
+  } else {
+    const form = await Astro.request.formData().catch(() => null);
+    const password = String(form?.get('password') ?? '');
+    if (password && passwordMatches(password)) {
+      clearFails(ip);
+      Astro.cookies.set(SESSION_COOKIE, createSessionToken(), sessionCookieOptions());
+      return Astro.redirect('/admin', 303);
+    }
+    registerFail(ip);
+    await new Promise((r) => setTimeout(r, 600)); // замедляем подбор
+    error = password ? 'Неверный пароль. Проверьте раскладку и Caps Lock.' : 'Введите пароль.';
+  }
+  Astro.response.status = 401;
+}
+---
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Вход в админку</title>
+</head>
+<body class="adm-login">
+  <main class="adm-login__card">
+    <p class="adm-brand">Админка сайта</p>
+    <h1 class="adm-login__title">Вход</h1>
+    {problem ? (
+      <div class="adm-alert adm-alert--error" role="alert">
+        <p><b>Админка пока не настроена.</b> {problem}</p>
+        <p>Добавьте переменную в файл <code>.env.local</code> (локально) или в настройки проекта на хостинге и перезапустите сайт.</p>
+      </div>
+    ) : (
+      <form method="post" class="adm-login__form" novalidate>
+        <label class="adm-field">
+          <span class="adm-field__label">Пароль</span>
+          <input class="adm-input" type="password" name="password" autocomplete="current-password" required autofocus
+            aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'login-error' : undefined} />
+        </label>
+        {error && <p class="adm-field__error" id="login-error" role="alert">{error}</p>}
+        <button class="adm-btn adm-btn--primary adm-btn--wide" type="submit">Войти</button>
+      </form>
+    )}
+    <a class="adm-login__back" href="/">← Вернуться на сайт</a>
+  </main>
+</body>
+</html>

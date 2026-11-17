@@ -10,6 +10,10 @@ import { nb } from '../lib/typo.js';
 const byOrder = (mods) => Object.values(mods).map((m) => m.default).sort((a, b) => a.order - b.order);
 const cases = byOrder(import.meta.glob('../content/cases/*.json', { eager: true }));
 const tariffs = byOrder(import.meta.glob('../content/tariffs/*.json', { eager: true }));
+// Кнопка первого экрана и блок «Услуги» редактируются в /admin.
+import hero from '../content/hero.json';
+import services from '../content/services.json';
+const svc = Object.fromEntries(services.map((s) => [s.id, s]));
 
 const nav = [
   ['Главная', '#top'],
@@ -23,9 +27,6 @@ const benefits = [
   { t: 'Навести порядок\nв процессах', d: 'Все этапы продаж понятны и работают по единому сценарию', img: 'card3', h: 528 },
   { t: 'Видеть наглядно\nкартину о сделках', d: 'Отчеты и наглядные дашборды помогут видеть узкие места', img: 'card4', h: 528 },
 ];
-const auto = ['Сотрудники занимаются клиентами, а не рутиной', 'Устранен человеческий фактор и ошибки', 'Больше продуктивности, меньше хаоса', 'Время сотрудников используется с умом'];
-const integr = ['Все лиды автоматически попадают в CRM', 'Полный цикл работы с клиентом в одном интерфейсе', 'Двусторонняя синхронизация с внешними сервисами', 'Индивидуальные интеграции через API под ваш бизнес'];
-const analytics = ['Визуальные дашборды с ключевыми метриками', 'Данные в реальном времени', 'Понимание, где расти и что исправить', 'Решения на основе цифр, а не интуиции'];
 
 const row1 = [['Процессы', 'fire', 37, 36], ['Автоматизация', 'gear', 40, 41], ['Рост прибыли', 'dollar', 44, 45], ['Сделки', 'fire', 37, 36]];
 const row2 = [['Эффективность', 'bolt', 45, 45], ['Аналитика', 'chart', 35, 35], ['Воронки', 'person', 40, 40], ['Контроль команды', 'bolt', 45, 45]];
@@ -79,7 +80,7 @@ const stats = [['540', 'Компаний используют наши прод�
   <nav class="mmenu__nav" aria-label="Мобильное меню">
     {nav.map(([t, h]) => <a class="mmenu__link" href={h}>{t}</a>)}
   </nav>
-  <a class="btn mmenu__cta" href="#consultation">Оставить заявку</a>
+  <a class="btn mmenu__cta" href="#consultation">{hero.ctaText}</a>
 </div>
 
 <header class="hero">
@@ -99,7 +100,7 @@ const stats = [['540', 'Компаний используют наши прод�
           <span>в сложные системы</span>
         </h1>
         <p class="hero__sub">Повысим эффективность отдела продаж,<br /> в среднем <b>+35% к прибыли через 2 месяца</b></p>
-        <a class="btn btn--hero" href="#consultation">Оставить заявку</a>
+        <a class="btn btn--hero" href="#consultation">{hero.ctaText}</a>
       </div>
 
       <div class="hero__decor" aria-hidden="true">
@@ -153,8 +154,8 @@ const stats = [['540', 'Компаний используют наши прод�
           <article class="service service--auto reveal">
             <Img class="service__top" src="service1" w={880} h={543} alt="" />
             <div class="service__content">
-              <h3 class="service__title">Автоматизация</h3>
-              <ul class="arrows arrows--blue">{auto.map((t) => <li>{nb(t)}</li>)}</ul>
+              <h3 class="service__title">{svc.auto.title}</h3>
+              <ul class="arrows arrows--blue">{svc.auto.items.map((t) => <li>{nb(t)}</li>)}</ul>
             </div>
           </article>
 
@@ -162,8 +163,8 @@ const stats = [['540', 'Компаний используют наши прод�
             <article class="service service--integr">
               <Img class="service__art" src="service2" w={880} h={1220} />
               <div class="service__content">
-                <h3 class="service__title">Интеграции</h3>
-                <ul class="arrows">{integr.map((t) => <li>{nb(t)}</li>)}</ul>
+                <h3 class="service__title">{svc.integr.title}</h3>
+                <ul class="arrows">{svc.integr.items.map((t) => <li>{nb(t)}</li>)}</ul>
               </div>
             </article>
           </div>
@@ -172,14 +173,14 @@ const stats = [['540', 'Компаний используют наши прод�
             <article class="service service--analytics">
               <Img class="service__chart" src="service3" w={158} h={159} />
               <div class="service__content">
-                <h3 class="service__title">Аналитика</h3>
-                <ul class="arrows">{analytics.map((t) => <li>{nb(t)}</li>)}</ul>
+                <h3 class="service__title">{svc.analytics.title}</h3>
+                <ul class="arrows">{svc.analytics.items.map((t) => <li>{nb(t)}</li>)}</ul>
               </div>
             </article>
             <article class="service service--training">
               <Img class="service__avatar" src="service-avatar" w={100} h={100} />
-              <h3 class="service__title-sm">Обучение</h3>
-              <p>За одну неделю обучим ваших сотрудников всем тонкостям и возможностям софта. Работать станет приятнее и эффективнее</p>
+              <h3 class="service__title-sm">{svc.training.title}</h3>
+              <p>{svc.training.text}</p>
             </article>
           </div>
         </div>

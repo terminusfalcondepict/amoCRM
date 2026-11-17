@@ -1,0 +1,80 @@
+---
+// Админка. Доступ проверяет src/middleware.js (без входа — редирект на /admin/login).
+// Пока работает на mock-данных: стартовые значения берутся из src/content,
+// а правки хранятся в браузере (src/scripts/admin/store.js) и на сайт не попадают.
+import '@fontsource-variable/manrope';
+import '@fontsource-variable/inter';
+import '../../styles/global.css';
+import '../../styles/admin.css';
+import hero from '../../content/hero.json';
+import services from '../../content/services.json';
+
+export const prerender = false;
+
+const caseFiles = import.meta.glob('../../content/cases/*.json', { eager: true });
+const cases = Object.entries(caseFiles)
+  .map(([path, mod]) => ({ id: path.split('/').pop().replace(/\.json$/, ''), ...mod.default }))
+  .sort((a, b) => a.order - b.order);
+
+// JSON внутри <script>: экранируем «<», чтобы текст из кейсов не мог закрыть тег.
+const seed = JSON.stringify({ hero, services, cases }).replace(/</g, '\\u003c');
+
+const nav = [
+  { id: 'hero', label: 'Главный экран', icon: '◧' },
+  { id: 'services', label: 'Услуги', icon: '☰' },
+  { id: 'cases', label: 'Кейсы', icon: '▤', count: true },
+];
+---
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Админка</title>
+</head>
+<body class="adm is-loading">
+  <a class="adm-skip" href="#adm-main">К содержимому</a>
+
+  <header class="adm-top">
+    <p class="adm-brand">Админка сайта</p>
+    <div class="adm-top__actions">
+      <a class="adm-btn adm-btn--small adm-btn--ghost" href="/" target="_blank" rel="noopener">Открыть сайт ↗</a>
+      <form method="post" action="/admin/logout">
+        <button class="adm-btn adm-btn--small adm-btn--ghost" type="submit">Выйти</button>
+      </form>
+    </div>
+  </header>
+
+  <div class="adm-layout">
+    <nav class="adm-nav" aria-label="Разделы админки">
+      {nav.map((n) => (
+        <a class="adm-nav__link" href={`#${n.id}`} data-nav={n.id}>
+          <span class="adm-nav__icon" aria-hidden="true">{n.icon}</span>
+          <span>{n.label}</span>
+          {n.count && <span class="adm-nav__count" data-cases-count>{cases.length}</span>}
+        </a>
+      ))}
+      <div class="adm-nav__foot">
+        <p class="adm-notice" data-notice>Демо-режим: правки сохраняются только в этом браузере и пока не появляются на сайте.</p>
+        <button class="adm-link-btn" type="button" data-reset>Сбросить демо-данные</button>
+      </div>
+    </nav>
+
+    <main class="adm-main" id="adm-main">
+      <p class="adm-loading">Загружаем данные…</p>
+    </main>
+  </div>
+
+  <div class="adm-savebar" data-savebar hidden>
+    <p class="adm-savebar__text">Есть несохранённые изменения</p>
+    <div class="adm-savebar__actions">
+      <button class="adm-btn" type="button" data-cancel>Отменить</button>
+      <button class="adm-btn adm-btn--primary" type="button" data-save>Сохранить</button>
+    </div>
+  </div>
+
+  <script type="application/json" id="admin-seed" set:html={seed}></script>
+  <script src="../../scripts/admin/app.js"></script>
+</body>
+</html>
