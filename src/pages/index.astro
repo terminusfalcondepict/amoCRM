@@ -7,13 +7,16 @@ import Case from '../components/Case.astro';
 import Img from '../components/Img.astro';
 import { nb } from '../lib/typo.js';
 
+import { getContent } from '../lib/content/repo.js';
+
 const byOrder = (mods) => Object.values(mods).map((m) => m.default).sort((a, b) => a.order - b.order);
-const cases = byOrder(import.meta.glob('../content/cases/*.json', { eager: true }));
 const tariffs = byOrder(import.meta.glob('../content/tariffs/*.json', { eager: true }));
-// Кнопка первого экрана и блок «Услуги» редактируются в /admin.
-import hero from '../content/hero.json';
-import services from '../content/services.json';
+// Кейсы, услуги, кнопка первого экрана и SEO редактируются в /admin и хранятся в Supabase.
+// Читаются один раз при сборке; админка после сохранения запускает пересборку.
+const { hero, services, cases, seo } = await getContent();
 const svc = Object.fromEntries(services.map((s) => [s.id, s]));
+const page = seo.find((p) => p.path === '/');
+if (!page) throw new Error('Supabase: нет SEO-настроек для главной страницы (page_seo, path = "/").');
 
 const nav = [
   ['Главная', '#top'],
@@ -65,8 +68,8 @@ const stats = [['540', 'Компаний используют наши прод�
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Внедряем amoCRM в сложные системы</title>
-  <meta name="description" content="Повысим эффективность отдела продаж, в среднем +35% к прибыли через 2 месяца. Внедрение и развитие amoCRM." />
+  <title>{page.title}</title>
+  <meta name="description" content={page.description} />
   <link rel="preload" href="/fonts/Involve-SemiBold.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/Involve-Medium.woff2" as="font" type="font/woff2" crossorigin />
   <script is:inline>document.documentElement.classList.add('js')</script>

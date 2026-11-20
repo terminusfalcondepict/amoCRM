@@ -1,56 +1,49 @@
-// Mock-хранилище контента админки.
-// Интерфейс (load / save / reset, всё асинхронно) повторяет будущий серверный API:
-// чтобы подключить базу данных, достаточно заменить этот модуль, не трогая экраны.
-// Пока данные лежат в localStorage этого браузера и на публичный сайт не попадают.
+// Хранилище контента админки: данные в Supabase, запись через /admin/api/content/<раздел>.
+// Интерфейс (load / save, всё асинхронно) тот же, что был у mock-версии, — экраны о базе не знают.
+// Стартовые данные сервер кладёт прямо в страницу, поэтому load() не делает лишний запрос.
+import { toast } from './dom.js';
 
-const KEY = 'crm-admin-mock-v1';
-const VERSION = 1;
-const LATENCY_MS = 250; // имитация сети, чтобы были видны состояния «Сохраняем…»
-
-const wait = () => new Promise((r) => setTimeout(r, LATENCY_MS));
 const clone = (v) => structuredClone(v);
 
-export function createStore(seed) {
-  let persistent = true;
-  let current = null;
-  const fresh = () => ({ version: VERSION, updatedAt: null, ...clone(seed) });
+export class SaveError extends Error {
+  constructor(message, status, errors) {
+    super(message);
+    this.status = status;
+    this.errors = errors;
+  }
+}
 
-  const read = () => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      const data = raw ? JSON.parse(raw) : null;
-      return data?.version === VERSION ? data : null;
-    } catch {
-      persistent = false;
-      return null;
-    }
-  };
-  const write = (data) => {
-    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch { persistent = false; }
-  };
+export function createStore(initial) {
+  let current = clone(initial);
 
   return {
-    /** false, если браузер не даёт сохранять (приватный режим и т. п.) */
-    get persistent() { return persistent; },
-
     async load() {
-      await wait();
-      current = read() ?? fresh();
       return clone(current);
     },
 
-    /** section: 'hero' | 'services' | 'cases' */
+    /** section: 'hero' | 'services' | 'cases' | 'seo'. Возвращает весь контент после сохранения. */
     async save(section, value) {
-      await wait();
-      current = { ...current, [section]: clone(value), updatedAt: new Date().toISOString() };
-      write(current);
-      return clone(current);
-    },
-
-    async reset() {
-      await wait();
-      try { localStorage.removeItem(KEY); } catch { /* нечего удалять */ }
-      current = fresh();
+      let res;
+      try {
+        res = await fetch(`/admin/api/content/${section}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+          credentials: 'same-origin',
+        });
+      } catch {
+        throw new SaveError('Нет связи с сервером', 0);
+      }
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        toast('Сессия истекла — войдите снова. Несохранённые правки пропадут.', 'error');
+        setTimeout(() => { location.href = '/admin/login'; }, 2500);
+      }
+      if (!res.ok) throw new SaveError(body.error || 'Не удалось сохранить', res.status, body.errors);
+      if (body.published === false) {
+        toast('Сохранено в базе, но пересборка сайта не запустилась. Сообщите разработчику.', 'error');
+      }
+      current = body.data;
       return clone(current);
     },
   };

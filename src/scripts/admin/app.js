@@ -1,12 +1,13 @@
-// Каркас админки: разделы по адресу (#hero, #services, #cases, #cases/<id>),
+// Каркас админки: разделы по адресу (#hero, #services, #cases, #cases/<id>, #seo),
 // панель «Сохранить / Отменить», защита от потери несохранённых правок.
 import { createStore } from './store.js';
 import { confirmDialog, toast } from './dom.js';
 import { heroView } from './hero.js';
 import { servicesView } from './services.js';
 import { casesView } from './cases.js';
+import { seoView } from './seo.js';
 
-const ROUTES = { hero: heroView, services: servicesView, cases: casesView };
+const ROUTES = { hero: heroView, services: servicesView, cases: casesView, seo: seoView };
 const DEFAULT = 'hero';
 
 const $ = (sel) => document.querySelector(sel);
@@ -14,9 +15,9 @@ const main = $('#adm-main');
 const bar = $('[data-savebar]');
 const saveBtn = $('[data-save]');
 const cancelBtn = $('[data-cancel]');
-const notice = $('[data-notice]');
 
-const store = createStore(JSON.parse($('#admin-seed').textContent));
+const seedEl = $('#admin-seed'); // нет, если сервер не смог прочитать базу — тогда на странице уже текст ошибки
+const store = createStore(seedEl ? JSON.parse(seedEl.textContent) : null);
 let data = null;
 let view = null;
 let route = '';
@@ -83,9 +84,9 @@ async function save() {
     saving = false;
     view.saved?.(data);
     toast('Сохранено');
-  } catch {
+  } catch (e) {
     saving = false;
-    toast('Не получилось сохранить. Попробуйте ещё раз.', 'error');
+    if (e?.status !== 401) toast('Не получилось сохранить. Попробуйте ещё раз.', 'error');
   }
   syncBar();
   const count = $('[data-cases-count]');
@@ -101,6 +102,7 @@ async function cancel() {
 
 /* Переход в другой раздел с несохранёнными правками — спрашиваем. */
 window.addEventListener('hashchange', async () => {
+  if (!data) return;
   if (restoring) { restoring = false; return; }
   if (dirty()) {
     const ok = await confirmDialog({
@@ -119,25 +121,10 @@ document.addEventListener('keydown', (e) => {
 saveBtn.addEventListener('click', save);
 cancelBtn.addEventListener('click', cancel);
 
-$('[data-reset]').addEventListener('click', async () => {
-  const ok = await confirmDialog({
-    title: 'Сбросить демо-данные?',
-    text: 'Все изменения, сделанные в админке, удалятся, и вернутся тексты, которые сейчас на сайте.',
-    ok: 'Сбросить', danger: true,
-  });
-  if (!ok) return;
-  data = await store.reset();
-  render();
-  toast('Демо-данные сброшены');
-});
-
 /* Запуск */
 (async () => {
+  if (!seedEl) { document.body.classList.remove('is-loading'); return; }
   data = await store.load();
-  if (!store.persistent) {
-    notice.textContent = 'Браузер не разрешает сохранять данные (например, в режиме инкогнито). Правки пропадут после перезагрузки страницы.';
-    notice.classList.add('is-warning');
-  }
   if (!location.hash) history.replaceState(null, '', `#${DEFAULT}`);
   render();
   document.body.classList.remove('is-loading');

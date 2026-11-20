@@ -1,6 +1,7 @@
-// Проверка админки: вход, редактирование разделов, кейсы, сохранение, выход.
+// Проверка админки: вход, редактирование разделов, кейсы, SEO, сохранение в Supabase, выход.
 // Запуск при работающем `npm run dev`: node scripts/test-admin.mjs
 // Пароль берётся из .env.local и нигде не выводится. SHOTS=папка — сохранить снимки экрана.
+// Тест пишет в настоящую базу из .env.local: в начале запоминает контент, в конце возвращает его как было.
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 
@@ -15,8 +16,8 @@ const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, reduced
 const p = await ctx.newPage();
 const errs = [];
 p.on('pageerror', (e) => errs.push(e.message));
-// 401 — ожидаемый ответ на проверку неверного пароля
-p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('401')) errs.push(m.text()); });
+// 401 и 422 — ожидаемые ответы на проверки неверного пароля и неверных данных
+p.on('console', (m) => { if (m.type() === 'error' && !/\b(401|422)\b/.test(m.text())) errs.push(m.text()); });
 const shot = async (name) => { if (shots) await p.screenshot({ path: `${shots}/${name}.png`, fullPage: true }); };
 const toast = () => p.locator('.adm-toast').last().textContent();
 const bar = p.locator('[data-savebar]');
@@ -34,9 +35,30 @@ await p.waitForSelector('.adm-section__title');
 ok('верный пароль открывает админку', p.url().includes('/admin#hero'));
 const cookie = (await ctx.cookies()).find((c) => c.name === 'admin_session');
 ok('cookie сессии httpOnly и SameSite=Strict', cookie?.httpOnly && cookie?.sameSite === 'Strict');
-await p.evaluate(() => localStorage.clear());
-await p.reload();
-await p.waitForSelector('.adm-section__title');
+
+// ---------- API ----------
+const api = (method, section, value, headers = {}) => p.evaluate(async ([m, sec, v, hd]) => {
+  const r = await fetch(`/admin/api/content/${sec}`, { method: m, headers: { 'Content-Type': 'application/json', ...hd },
+    body: m === 'GET' ? undefined : JSON.stringify({ value: v }) });
+  return { status: r.status, body: await r.json().catch(() => null) };
+}, [method, section, value, headers]);
+const dbData = async () => (await api('GET', 'all')).body.data;
+const original = await dbData();
+ok('API отдаёт контент из базы', original?.cases?.length >= 1 && original.services.length === 4 && original.seo.length >= 1 && !!original.hero.ctaText);
+const anon = await b.newContext();
+ok('API без входа отвечает 401', (await anon.request.get(`${base}/admin/api/content/all`)).status() === 401);
+await anon.close();
+ok('API отклоняет запрос с чужого сайта', (await ctx.request.put(`${base}/admin/api/content/hero`, {
+  headers: { Origin: 'https://evil.example', 'Content-Type': 'application/json' }, data: { value: { ctaText: 'x' } } })).status() === 403);
+ok('сервер не принимает слишком длинный текст', (await api('PUT', 'hero', { ctaText: 'x'.repeat(40) })).status === 422);
+ok('сервер не даёт удалить все кейсы', (await api('PUT', 'cases', [])).status === 422);
+
+async function restore() {
+  for (const sec of ['hero', 'services', 'seo', 'cases']) {
+    const r = await api('PUT', sec, original[sec]);
+    ok(`данные раздела «${sec}» возвращены как были`, r.status === 200);
+  }
+}
 
 // ---------- Главный экран ----------
 ok('панель сохранения скрыта без правок', await bar.isHidden());
@@ -88,8 +110,8 @@ await p.locator('.adm-service').nth(3).getByLabel('Текст').fill('Обучи
 await shot('03-services');
 await p.click('[data-save]');
 await p.waitForFunction(() => document.querySelector('[data-savebar]').hidden);
-const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('crm-admin-mock-v1')));
-ok('услуги сохранены в mock-данных', saved.services[0].title === 'Автоматизация процессов' && saved.services[0].items.length === 5 && saved.services[0].items[3] === 'Новый пункт списка' && saved.services[3].text === 'Обучим команду за неделю');
+const saved = await dbData();
+ok('услуги сохранены в базе', saved.services[0].title === 'Автоматизация процессов' && saved.services[0].items.length === 5 && saved.services[0].items[3] === 'Новый пункт списка' && saved.services[3].text === 'Обучим команду за неделю');
 
 // ---------- Кейсы ----------
 await p.click('[data-nav=cases]');
@@ -106,7 +128,7 @@ await p.getByLabel('Стало').fill('75%');
 ok('предпросмотр показывает новое «стало»', await p.waitForFunction(() => [...document.querySelectorAll('.adm-case-preview .chart__tip')].some((t) => t.textContent === '75%'), null, { timeout: 2000 }).then(() => true, () => false));
 await p.click('[data-save]');
 await p.waitForSelector('.adm-case-row');
-let data = await p.evaluate(() => JSON.parse(localStorage.getItem('crm-admin-mock-v1')));
+let data = await dbData();
 const c1 = data.cases[0];
 ok('сохранено: подписи на кривой 18% и 75%, форма не изменилась',
   JSON.stringify(c1.chart.points.filter((x) => x.tip).map((x) => x.tip)) === '["18%","75%"]' && c1.chart.points.length === 9 && c1.chart.shape === 'custom');
@@ -144,7 +166,7 @@ ok('счётчик кейсов в меню обновился', (await p.locato
 // порядок
 await p.locator('.adm-case-row').last().locator('[data-move=up]').click();
 await p.waitForFunction(() => document.querySelectorAll('.adm-case-row__title')[2]?.textContent.startsWith('Автосалон'));
-ok('кейс перемещён левее, порядок сохранён', (await p.evaluate(() => JSON.parse(localStorage.getItem('crm-admin-mock-v1')).cases.map((c) => c.order).join())) === '1,2,3,4');
+ok('кейс перемещён левее, порядок сохранён', (await dbData()).cases.map((c) => c.order).join() === '1,2,3,4');
 
 // удаление
 await p.locator('.adm-case-row').nth(2).getByRole('button', { name: 'Удалить' }).click();
@@ -161,21 +183,35 @@ await p.goto(`${base}/admin#cases/net-takogo`);
 await p.waitForSelector('.adm-section__title');
 ok('несуществующий кейс — понятное сообщение', (await p.locator('.adm-section__title').textContent()) === 'Кейс не найден');
 
-// ---------- Сброс демо-данных ----------
+// ---------- SEO ----------
+await p.goto(`${base}/admin#seo`);
+await p.waitForSelector('.adm-snippet');
+await p.getByLabel('SEO Title').fill('');
+await p.click('[data-save]');
+ok('пустой SEO Title не сохраняется', (await p.getByLabel('SEO Title').getAttribute('aria-invalid')) !== null);
+await p.getByLabel('SEO Title').fill('Внедрение amoCRM под ключ');
+await p.getByLabel('Meta Description').fill('Настроим amoCRM под ваш отдел продаж.');
+ok('сниппет обновляется', (await p.locator('.adm-snippet__title').textContent()) === 'Внедрение amoCRM под ключ');
+await shot('06-seo');
+await p.click('[data-save]');
+await p.waitForFunction(() => document.querySelector('[data-savebar]').hidden);
+const seo = (await dbData()).seo.find((x) => x.path === '/');
+ok('SEO сохранено в базе', seo.title === 'Внедрение amoCRM под ключ' && seo.description === 'Настроим amoCRM под ваш отдел продаж.');
+
+// ---------- Возврат данных ----------
+await restore();
 await p.goto(`${base}/admin#hero`);
+await p.reload(); // смена одного якоря страницу не перезагружает, а нужны свежие данные с сервера
 await p.waitForSelector('.adm-section__title');
-await p.click('[data-reset]');
-await p.locator('.adm-dialog').getByRole('button', { name: 'Сбросить' }).click();
-await p.waitForFunction(() => document.querySelector('.adm-toast')?.textContent.includes('сброшены'));
-ok('сброс возвращает исходный текст кнопки', (await p.getByLabel('Текст кнопки').inputValue()) === 'Оставить заявку');
+ok('после возврата в админке исходный текст кнопки', (await p.getByLabel('Текст кнопки').inputValue()) === original.hero.ctaText);
 
 // ---------- Телефон ----------
 await p.setViewportSize({ width: 375, height: 760 });
-for (const r of ['hero', 'services', 'cases', 'cases/01-marketing']) {
+for (const r of ['hero', 'services', 'cases', `cases/${original.cases[0].id}`, 'seo']) {
   await p.goto(`${base}/admin#${r}`);
   await p.waitForSelector('.adm-section__title');
   ok(`телефон 375px, #${r}: нет горизонтальной прокрутки`, (await p.evaluate(() => document.documentElement.scrollWidth)) <= 375);
-  await shot(`06-mobile-${r.replace('/', '-')}`);
+  await shot(`07-mobile-${r.replace('/', '-')}`);
 }
 
 // ---------- Выход ----------

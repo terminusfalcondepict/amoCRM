@@ -13,6 +13,9 @@ export const LIMITS = {
   solution: 240,
   chartLabel: 24,
   chartValue: 8,
+  // SEO: столько поисковики обычно показывают целиком
+  seoTitle: 70,
+  seoDescription: 160,
 };
 
 export const SERVICE_ITEMS = { min: 2, max: 6 };
@@ -60,6 +63,15 @@ export function validateCase(c) {
     ['chart.before', textError(c.chart.before, LIMITS.chartValue)],
     ['chart.after', textError(c.chart.after, LIMITS.chartValue)],
   ]);
+}
+
+export function validateSeo(pages) {
+  const pairs = [];
+  for (const pg of pages) {
+    pairs.push([`${pg.path}.title`, textError(pg.title, LIMITS.seoTitle)]);
+    pairs.push([`${pg.path}.description`, textError(pg.description, LIMITS.seoDescription)]);
+  }
+  return collect(pairs);
 }
 
 /** Убирает лишние пробелы по краям во всех строках перед сохранением. */

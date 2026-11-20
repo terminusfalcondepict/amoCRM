@@ -1,10 +1,10 @@
 # Лендинг: внедрение amoCRM
 
-Сайт на [Astro](https://astro.build). Публичная страница собирается статически; на сервере (Vercel Functions) работает только админка `/admin`.
+Сайт на [Astro](https://astro.build). Публичная страница собирается статически, контент для неё (кейсы, услуги, кнопка первого экрана, SEO) берётся из [Supabase](https://supabase.com) во время сборки. На сервере (Vercel Functions) работает только админка `/admin`.
 
 ## Запуск
 
-Нужен Node.js LTS (установлен через nvm) и файл `.env.local` с паролем админки (см. ниже).
+Нужен Node.js LTS (установлен через nvm) и файл `.env.local` с паролем админки и ключами Supabase (см. ниже).
 
 ```bash
 npm install
@@ -21,10 +21,11 @@ npm run build      # сборка для Vercel в .vercel/output/
 | Стили и адаптив | `src/styles/global.css` |
 | Интерактив | `src/scripts/main.js` |
 | Отправка заявки (пока заглушка) | `src/scripts/lead.js` |
-| Кейсы | `src/content/cases/` |
-| Кнопка первого экрана, блок «Услуги» | `src/content/hero.json`, `src/content/services.json` |
+| Кейсы, услуги, кнопка первого экрана, SEO | Supabase; схема — `supabase/migrations/`, чтение и запись — `src/lib/content/repo.js` |
 | Форматы работы (тарифы) — только в коде | `src/content/tariffs/` |
 | Админка | `src/pages/admin/`, `src/scripts/admin/`, `src/styles/admin.css` |
+| API админки (сохранение) | `src/pages/admin/api/content/[section].js` |
+| Пересборка сайта после сохранения | `src/lib/content/publish.js` |
 | Вход в админку | `src/lib/admin/auth.js`, `src/middleware.js` |
 | График кейса «было → стало» | `src/lib/chart-presets.js` |
 | Исходники картинок из Figma | `design-src/` |
@@ -38,8 +39,21 @@ npm run build      # сборка для Vercel в .vercel/output/
 - **Главный экран** — текст кнопки заявки (на первом экране и в мобильном меню).
 - **Услуги** — названия и пункты карточек блока «Комплексное внедрение и развитие amoCRM».
 - **Кейсы** — добавление, правка, удаление и порядок карточек в слайдере. График задаётся двумя значениями «было/стало» и формой линии; точки строятся автоматически (`src/lib/chart-presets.js`).
+- **SEO** — SEO Title и Meta Description главной страницы.
 
-**Сейчас админка работает на mock-данных.** Стартовые значения берутся из `src/content/`, правки хранятся в `localStorage` браузера (`src/scripts/admin/store.js`) и **на публичный сайт не попадают**. Чтобы подключить базу данных, достаточно заменить `store.js` реализацией с теми же методами `load / save / reset`, а сайт научить читать те же данные.
+### Как это работает
+
+- Данные хранятся в Supabase: таблицы `cases`, `services`, `page_seo`, `site_settings`.
+- **Чтение.** Сайт читает их при сборке ключом `SUPABASE_PUBLISHABLE_KEY`. RLS разрешает этому ключу только `SELECT`. Посетители к базе не обращаются: если Supabase недоступен, сборка падает, а на сайте остаётся предыдущая версия.
+- **Запись.** Админка сохраняет раздел запросом `PUT /admin/api/content/<hero|services|cases|seo>`. Сервер проверяет сессию (`src/middleware.js`), источник запроса и данные (те же правила, что в `src/scripts/admin/validate.js`), затем пишет в базу ключом `SUPABASE_SECRET_KEY`. Этот ключ есть только на сервере.
+- **Публикация.** После сохранения сервер вызывает Vercel Deploy Hook (`VERCEL_DEPLOY_HOOK_URL`), и изменения появляются на сайте через 1–2 минуты. Локально хук не нужен: перезапустите `npm run dev` или обновите страницу.
+
+### Первоначальная настройка Supabase
+
+1. Supabase → SQL Editor: выполнить `supabase/migrations/0001_content.sql`, затем `supabase/seed.sql` (перенос текущего контента). Оба файла можно запускать повторно.
+2. Supabase → Project Settings → API Keys: взять publishable и secret key.
+3. Vercel → Project → Settings → Git → Deploy Hooks: создать хук для ветки `main`.
+4. Прописать переменные (таблица ниже) в `.env.local` и в Vercel → Settings → Environment Variables, затем сделать новый деплой.
 
 ### Вход
 
@@ -49,9 +63,13 @@ npm run build      # сборка для Vercel в .vercel/output/
 |---|---|
 | `ADMIN_PASSWORD` | пароль для входа |
 | `ADMIN_SESSION_SECRET` | случайная строка не короче 32 символов для подписи cookie сессии |
+| `SUPABASE_URL` | адрес проекта Supabase, `https://<id>.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | ключ `sb_publishable_…`, только чтение. Нужен и при сборке |
+| `SUPABASE_SECRET_KEY` | ключ `sb_secret_…`, запись из админки. **Секрет**, только на сервере |
+| `VERCEL_DEPLOY_HOOK_URL` | адрес Deploy Hook для пересборки сайта. Локально не нужен |
 
 - **Локально** они лежат в `.env.local` (файл исключён из Git).
-- **На Vercel** добавьте обе переменные в Project → Settings → Environment Variables и сделайте новый деплой.
+- **На Vercel** добавьте переменные в Project → Settings → Environment Variables и сделайте новый деплой.
 
 Сессия живёт 7 дней. Смена пароля или секрета сразу завершает все открытые сессии. После 5 неверных попыток вход с этого адреса блокируется на 15 минут (счётчик в памяти функции, сбрасывается при её перезапуске).
 
@@ -68,7 +86,9 @@ npm run build      # сборка для Vercel в .vercel/output/
 npm run dev
 node scripts/screens.mjs              # снимки на контрольных ширинах и поиск переполнения
 node scripts/test.mjs                 # аккордеон, перетаскивание, форма, якоря
-node scripts/test-admin.mjs           # админка: вход, разделы, кейсы, сохранение, выход
+node scripts/test-admin.mjs           # админка: вход, разделы, кейсы, SEO, сохранение в Supabase, выход
 ```
+
+`test-admin.mjs` пишет в настоящую базу из `.env.local`. В начале он запоминает контент, в конце возвращает его как было. Если тест упал на середине, данные могли остаться изменёнными: проверьте админку.
 
 `test-admin.mjs` делает одну попытку с неверным паролем, поэтому после пяти запусков подряд вход блокируется на 15 минут — перезапустите `npm run dev`.
